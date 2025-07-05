@@ -2,25 +2,48 @@ import axios from "axios";
 
 const API_BASE_URL = "https://everydayconversify-conversify-model.hf.space";
 
-export interface AllInOneTranslationResponse {
-  english: string;
-  japanese: string;
-  pronunciation: string;
+interface TranslateResponse {
+  translated_text: string;
 }
 
-export const translateAllInOne = async (koreanText: string): Promise<AllInOneTranslationResponse> => {
+interface PronunciationResponse {
+  pronunciation_text: string;
+}
+
+export const translateEnglish = async (text: string): Promise<string> => {
   try {
-    const response = await axios.post<AllInOneTranslationResponse>(`${API_BASE_URL}/translate`, {
-      text: koreanText,
+    const response = await axios.post<TranslateResponse>(`${API_BASE_URL}/translate`, {
+      korean_text: text,
+      target_lang: "en",
     });
-    return response.data;
+    return response.data.translated_text;
   } catch (error) {
-    console.error("All-in-one translation API error:", error);
-    // 더 구체적인 에러 메시지를 제공할 수 있음.
-    if (axios.isAxiosError(error) && error.response) {
-      console.error("Error data:", error.response.data);
-      throw new Error(error.response.data.error || "번역 중 서버에서 오류가 발생했습니다.");
-    }
-    throw new Error("번역 요청 중 알 수 없는 오류가 발생했습니다.");
+    console.error("English translation API error:", error);
+    throw new Error("영어로 번역 중 오류가 발생했습니다.");
+  }
+};
+
+export const translateJapanese = async (text: string): Promise<string> => {
+  try {
+    const response = await axios.post<TranslateResponse>(`${API_BASE_URL}/translate`, {
+      korean_text: text,
+      target_lang: "ja",
+    });
+    return response.data.translated_text;
+  } catch (error) {
+    console.error("Japanese translation API error:", error);
+    throw new Error("일본어로 번역 중 오류가 발생했습니다.");
+  }
+};
+
+export const getJapanesePronunciation = async (japaneseText: string): Promise<string> => {
+  try {
+    const response = await axios.post<PronunciationResponse>(`${API_BASE_URL}/pronunciation`, {
+      japanese_text: japaneseText,
+    });
+    return response.data.pronunciation_text;
+  } catch (error) {
+    console.error("Japanese pronunciation API error:", error);
+    throw new Error("일본어 발음을 가져오는 중 오류가 발생했습니다.");
   }
 }; 
