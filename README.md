@@ -1,3 +1,7 @@
+# Conversify
+
+일상 대화를 통해 외국어를 쉽게 배우는 회화 학습 도우미입니다.
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started

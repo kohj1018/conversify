@@ -72,7 +72,7 @@ export default function TranslatePage() {
           <div className="text-center space-y-4">
             <div className="flex items-center justify-center gap-2">
               <Languages className="h-8 w-8 text-blue-600" />
-              <h1 className="text-3xl font-bold text-gray-900">영어 회화 학습</h1>
+              <h1 className="text-3xl font-bold text-gray-900">Conversify</h1>
             </div>
             <p className="text-gray-600 text-lg">일상 대화 문장을 입력하고 영어와 일본어로 번역해보세요</p>
           </div>

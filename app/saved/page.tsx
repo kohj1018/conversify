@@ -69,7 +69,7 @@ export default function SavedSentencesPage() {
           <div className="text-center space-y-4">
             <div className="flex items-center justify-center gap-2">
               <BookOpen className="h-8 w-8 text-green-600" />
-              <h1 className="text-3xl font-bold text-gray-900">내 저장된 문장</h1>
+              <h1 className="text-3xl font-bold text-gray-900">Conversify - 저장된 문장</h1>
             </div>
             <p className="text-gray-600 text-lg">저장한 문장들을 클릭하여 번역을 확인해보세요</p>
             <Badge variant="secondary" className="text-sm">
