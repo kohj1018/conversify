@@ -18,7 +18,7 @@ export function Navigation() {
             <span className="font-bold text-xl text-gray-900">Conversify</span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="hidden md:flex items-center gap-2">
             <Button
               asChild
               variant={pathname === "/" ? "default" : "ghost"}
