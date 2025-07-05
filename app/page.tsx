@@ -6,29 +6,60 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Save, Languages, Edit3, Check } from "lucide-react"
+import { Save, Languages, Edit3, Check, Loader2 } from "lucide-react"
 import { Navigation } from "@/components/navigation"
 import { useToast } from "@/hooks/use-toast"
+import { translateEnglish, translateJapanese, getJapanesePronunciation } from "@/lib/api"
 
 export default function TranslatePage() {
   const [koreanText, setKoreanText] = useState("")
   const [englishText, setEnglishText] = useState("")
   const [japaneseText, setJapaneseText] = useState("")
   const [japanesePronunciation, setJapanesePronunciation] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
   const [isEditingEnglish, setIsEditingEnglish] = useState(false)
   const [isEditingJapanese, setIsEditingJapanese] = useState(false)
   const [isEditingPronunciation, setIsEditingPronunciation] = useState(false)
   const [hasTranslated, setHasTranslated] = useState(false)
   const { toast } = useToast()
 
-  const handleTranslate = () => {
-    if (!koreanText.trim()) return
+  const handleTranslate = async () => {
+    if (!koreanText.trim() || isLoading) return
 
-    // Mock translation - user will implement with Gemma
-    setEnglishText("Hello, how are you today? I'm doing well, thank you.")
-    setJapaneseText("こんにちは、今日はいかがですか？私は元気です、ありがとう。")
-    setJapanesePronunciation("곤니치와, 쿄우와 이카가데스카? 와타시와 겐키데스, 아리가토우.")
-    setHasTranslated(true)
+    setIsLoading(true)
+    setHasTranslated(false)
+    // Clear previous results
+    setEnglishText("")
+    setJapaneseText("")
+    setJapanesePronunciation("")
+
+    try {
+      // 1. 영어 번역과 일본어 번역을 동시에 요청
+      const englishPromise = translateEnglish(koreanText)
+      const japanesePromise = translateJapanese(koreanText)
+
+      const [englishResult, japaneseResult] = await Promise.all([englishPromise, japanesePromise])
+
+      setEnglishText(englishResult)
+      setJapaneseText(japaneseResult)
+
+      // 2. 일본어 번역 완료 후, 해당 결과로 발음 변환 요청
+      if (japaneseResult) {
+        const pronunciationResult = await getJapanesePronunciation(japaneseResult)
+        setJapanesePronunciation(pronunciationResult)
+      }
+
+      setHasTranslated(true)
+    } catch (error) {
+      toast({
+        title: "번역 실패",
+        description: error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.",
+        variant: "destructive",
+      })
+      setHasTranslated(false)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleSave = () => {
@@ -92,10 +123,20 @@ export default function TranslatePage() {
                 value={koreanText}
                 onChange={(e) => setKoreanText(e.target.value)}
                 className="min-h-[100px] text-lg"
+                disabled={isLoading}
               />
-              <Button onClick={handleTranslate} disabled={!koreanText.trim()} className="w-full" size="lg">
-                <Languages className="h-4 w-4 mr-2" />
-                번역하기
+              <Button onClick={handleTranslate} disabled={!koreanText.trim() || isLoading} className="w-full" size="lg">
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    번역 중...
+                  </>
+                ) : (
+                  <>
+                    <Languages className="h-4 w-4 mr-2" />
+                    번역하기
+                  </>
+                )}
               </Button>
             </CardContent>
           </Card>
