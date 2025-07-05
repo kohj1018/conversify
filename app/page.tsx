@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Save, Languages, Edit3, Check, Loader2 } from "lucide-react"
 import { Navigation } from "@/components/navigation"
 import { useToast } from "@/hooks/use-toast"
-import { translateEnglish, translateJapanese, getJapanesePronunciation } from "@/lib/api"
+import { translateAllInOne } from "@/lib/api"
 
 export default function TranslatePage() {
   const [koreanText, setKoreanText] = useState("")
@@ -28,27 +28,17 @@ export default function TranslatePage() {
 
     setIsLoading(true)
     setHasTranslated(false)
-    // Clear previous results
     setEnglishText("")
     setJapaneseText("")
     setJapanesePronunciation("")
 
     try {
-      // 1. 영어 번역과 일본어 번역을 동시에 요청
-      const englishPromise = translateEnglish(koreanText)
-      const japanesePromise = translateJapanese(koreanText)
-
-      const [englishResult, japaneseResult] = await Promise.all([englishPromise, japanesePromise])
-
-      setEnglishText(englishResult)
-      setJapaneseText(japaneseResult)
-
-      // 2. 일본어 번역 완료 후, 해당 결과로 발음 변환 요청
-      if (japaneseResult) {
-        const pronunciationResult = await getJapanesePronunciation(japaneseResult)
-        setJapanesePronunciation(pronunciationResult)
-      }
-
+      const result = await translateAllInOne(koreanText)
+      
+      setEnglishText(result.english)
+      setJapaneseText(result.japanese)
+      setJapanesePronunciation(result.pronunciation)
+      
       setHasTranslated(true)
     } catch (error) {
       toast({
