@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { BottomNavigation } from "@/components/bottom-navigation";
+import { Toaster } from "@/components/ui/sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,6 +31,9 @@ export default function RootLayout({
       >
         {children}
         <BottomNavigation />
+        <Toaster position="top-center" toastOptions={{
+          className: 'md:!top-auto md:!bottom-0 md:!left-auto md:!right-0 md:!translate-x-0',
+        }}/>
       </body>
     </html>
   );

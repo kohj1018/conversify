@@ -1,62 +1,59 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Badge } from "@/components/ui/badge"
-import { BookOpen, Trash2 } from "lucide-react"
+import { BookOpen, Trash2, Edit3, Check, X } from "lucide-react"
 import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
-
-// Mock data - user will replace with real data
-const mockSavedSentences = [
-  {
-    id: 1,
-    korean: "안녕하세요, 오늘 날씨가 정말 좋네요. 산책하기 딱 좋은 날씨인 것 같아요.",
-    english: "Hello, the weather is really nice today. It seems like perfect weather for a walk.",
-    japanese: "こんにちは、今日は本当にいい天気ですね。散歩するのにちょうどいい天気のようです。",
-    pronunciation: "곤니치와, 쿄우와 혼토우니 이이 텐키데스네. 산포스루노니 쵸우도이이 텐키노요우데스.",
-    createdAt: "2024-01-15",
-  },
-  {
-    id: 2,
-    korean: "실례합니다, 지하철역이 어디에 있나요?",
-    english: "Excuse me, where is the subway station?",
-    japanese: "すみません、地下鉄の駅はどこにありますか？",
-    pronunciation: "스미마센, 치카테츠노 에키와 도코니 아리마스카?",
-    createdAt: "2024-01-14",
-  },
-  {
-    id: 3,
-    korean: "이 음식 정말 맛있어요! 레시피를 알려주실 수 있나요?",
-    english: "This food is really delicious! Could you tell me the recipe?",
-    japanese: "この料理は本当においしいです！レシピを教えていただけませんか？",
-    pronunciation: "코노 료우리와 혼토우니 오이시이데스! 레시피오 오시에테 이타다케마센카?",
-    createdAt: "2024-01-13",
-  },
-  {
-    id: 4,
-    korean: "죄송해요, 늦었어요. 교통이 너무 복잡했어요.",
-    english: "I'm sorry, I'm late. The traffic was too heavy.",
-    japanese: "すみません、遅れました。交通が複雑すぎました。",
-    pronunciation: "스미마센, 오쿠레마시타. 코우츠우가 후쿠자츠스기마시타.",
-    createdAt: "2024-01-12",
-  },
-  {
-    id: 5,
-    korean: "커피 한 잔 주세요. 설탕은 빼고 우유만 조금 넣어주세요.",
-    english: "One cup of coffee, please. No sugar, just a little milk.",
-    japanese: "コーヒーを一杯ください。砂糖は抜きで、ミルクを少しだけ入れてください。",
-    pronunciation: "코-히-오 이파이 쿠다사이. 사토우와 누키데, 미루쿠오 스코시다케 이레테 쿠다사이.",
-    createdAt: "2024-01-11",
-  },
-]
+import { useSentenceStore, Sentence } from "@/lib/store"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
+import { toast } from "sonner"
 
 export default function SavedSentencesPage() {
-  const [savedSentences, setSavedSentences] = useState(mockSavedSentences)
+  const { sentences, deleteSentence, updateSentence } = useSentenceStore()
+  const [isClient, setIsClient] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editedSentence, setEditedSentence] = useState<Partial<Sentence>>({})
 
-  const handleDelete = (id: number) => {
-    setSavedSentences((prev) => prev.filter((sentence) => sentence.id !== id))
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
+
+  const handleEditStart = (sentence: Sentence) => {
+    setEditingId(sentence.id)
+    setEditedSentence({
+      korean: sentence.korean,
+      english: sentence.english,
+      japanese: sentence.japanese,
+    })
+  }
+
+  const handleEditCancel = () => {
+    setEditingId(null)
+    setEditedSentence({})
+  }
+
+  const handleEditSave = (id: string) => {
+    updateSentence(id, editedSentence)
+    toast.success("문장이 성공적으로 수정되었습니다.")
+    handleEditCancel()
+  }
+
+  const handleContentChange = (field: keyof Omit<Sentence, 'id' | 'createdAt'>, value: string) => {
+    setEditedSentence(prev => ({ ...prev, [field]: value }))
+  }
+
+  // Hydration 오류를 피하기 위해 클라이언트에서만 렌더링
+  if (!isClient) {
+    return null
+  }
+
+  const handleDelete = (id: string) => {
+    deleteSentence(id)
+    toast.error("문장이 삭제되었습니다.")
   }
 
   return (
@@ -69,16 +66,16 @@ export default function SavedSentencesPage() {
           <div className="text-center space-y-4">
             <div className="flex items-center justify-center gap-2">
               <BookOpen className="h-8 w-8 text-green-600" />
-              <h1 className="text-3xl font-bold text-gray-900">Conversify - 저장된 문장</h1>
+              <h1 className="text-3xl font-bold text-gray-900">저장된 문장</h1>
             </div>
             <p className="text-gray-600 text-lg">저장한 문장들을 클릭하여 번역을 확인해보세요</p>
             <Badge variant="secondary" className="text-sm">
-              총 {savedSentences.length}개의 문장
+              총 {sentences.length}개의 문장
             </Badge>
           </div>
 
           {/* Saved Sentences */}
-          {savedSentences.length === 0 ? (
+          {sentences.length === 0 ? (
             <Card className="shadow-lg">
               <CardContent className="py-12 text-center">
                 <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -88,59 +85,92 @@ export default function SavedSentencesPage() {
             </Card>
           ) : (
             <div className="space-y-4">
-              {savedSentences.map((sentence) => (
+              {sentences.map((sentence) => (
                 <Card key={sentence.id} className="shadow-lg hover:shadow-xl transition-shadow">
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <CardTitle className="text-lg leading-relaxed text-gray-900">{sentence.korean}</CardTitle>
-                        <CardDescription className="mt-2">저장일: {sentence.createdAt}</CardDescription>
+                        {editingId === sentence.id ? (
+                          <Textarea
+                            value={editedSentence.korean}
+                            onChange={(e) => handleContentChange('korean', e.target.value)}
+                            className="text-lg"
+                          />
+                        ) : (
+                          <CardTitle className="text-lg leading-relaxed text-gray-900">{sentence.korean}</CardTitle>
+                        )}
+                        <CardDescription className="mt-2">저장일: {new Date(sentence.createdAt).toLocaleDateString()}</CardDescription>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(sentence.id)}
-                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center">
+                        {editingId === sentence.id ? (
+                          <>
+                            <Button variant="ghost" size="sm" onClick={() => handleEditSave(sentence.id)} className="text-green-600 hover:text-green-700">
+                              <Check className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={handleEditCancel} className="text-gray-600 hover:text-gray-800">
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </>
+                        ) : (
+                          <Button variant="ghost" size="sm" onClick={() => handleEditStart(sentence)}>
+                            <Edit3 className="h-4 w-4" />
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(sentence.id)}
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <Accordion type="single" collapsible className="w-full">
-                      <AccordionItem value="translations" className="border-none">
-                        <AccordionTrigger className="hover:no-underline py-2">
-                          <span className="text-sm text-gray-600">번역 보기</span>
-                        </AccordionTrigger>
-                        <AccordionContent className="space-y-6 pt-4">
-                          {/* English Translation */}
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2">
-                              <span className="text-lg">🇺🇸</span>
-                              <h4 className="font-medium text-gray-900">영어</h4>
+                    {editingId === sentence.id ? (
+                      <div className="space-y-4 pt-4">
+                        <div>
+                          <Label className="text-sm font-medium mb-1 flex items-center gap-1">🇺🇸 영어</Label>
+                          <Textarea value={editedSentence.english} onChange={(e) => handleContentChange('english', e.target.value)} />
+                        </div>
+                        <div>
+                          <Label className="text-sm font-medium mb-1 flex items-center gap-1">🇯🇵 일본어</Label>
+                          <Textarea value={editedSentence.japanese} onChange={(e) => handleContentChange('japanese', e.target.value)} />
+                        </div>
+                      </div>
+                    ) : (
+                      <Accordion type="single" collapsible className="w-full">
+                        <AccordionItem value="translations" className="border-none">
+                          <AccordionTrigger className="hover:no-underline py-2">
+                            <span className="text-sm text-gray-600">번역 보기</span>
+                          </AccordionTrigger>
+                          <AccordionContent className="space-y-6 pt-4">
+                            {/* English Translation */}
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-lg">🇺🇸</span>
+                                <h4 className="font-medium text-gray-900">영어</h4>
+                              </div>
+                              <p className="text-gray-700 bg-blue-50 p-4 rounded-lg leading-relaxed">
+                                {sentence.english}
+                              </p>
                             </div>
-                            <p className="text-gray-700 bg-blue-50 p-4 rounded-lg leading-relaxed">
-                              {sentence.english}
-                            </p>
-                          </div>
 
-                          {/* Japanese Translation */}
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2">
-                              <span className="text-lg">🇯🇵</span>
-                              <h4 className="font-medium text-gray-900">일본어</h4>
+                            {/* Japanese Translation */}
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-lg">🇯🇵</span>
+                                <h4 className="font-medium text-gray-900">일본어</h4>
+                              </div>
+                              <p className="text-gray-700 bg-red-50 p-4 rounded-lg leading-relaxed">
+                                {sentence.japanese}
+                              </p>
                             </div>
-                            <p className="text-gray-700 bg-red-50 p-4 rounded-lg leading-relaxed">
-                              {sentence.japanese}
-                            </p>
-                            <div className="bg-gray-50 p-3 rounded-lg">
-                              <p className="text-sm text-gray-600 mb-1">한국어 발음:</p>
-                              <p className="text-sm text-gray-800">{sentence.pronunciation}</p>
-                            </div>
-                          </div>
-                        </AccordionContent>
-                      </AccordionItem>
-                    </Accordion>
+                          </AccordionContent>
+                        </AccordionItem>
+                      </Accordion>
+                    )}
                   </CardContent>
                 </Card>
               ))}

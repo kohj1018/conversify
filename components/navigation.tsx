@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Languages, BookOpen } from "lucide-react"
+import { Languages, BookOpen, Speech } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export function Navigation() {
@@ -14,7 +14,7 @@ export function Navigation() {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-2">
-            <Languages className="h-6 w-6 text-blue-600" />
+            <Speech className="h-6 w-6 text-blue-600" />
             <span className="font-bold text-xl text-gray-900">Conversify</span>
           </div>
 

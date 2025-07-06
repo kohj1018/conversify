@@ -8,77 +8,96 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Save, Languages, Edit3, Check, Loader2 } from "lucide-react"
 import { Navigation } from "@/components/navigation"
-import { useToast } from "@/hooks/use-toast"
-import { translateAllInOne } from "@/lib/api"
+import { toast } from "sonner"
+import { translate_ko_to_en, translate_en_to_ja } from "@/lib/translator"
+import { useSentenceStore } from "@/lib/store"
 
 export default function TranslatePage() {
   const [koreanText, setKoreanText] = useState("")
   const [englishText, setEnglishText] = useState("")
   const [japaneseText, setJapaneseText] = useState("")
-  const [japanesePronunciation, setJapanesePronunciation] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [isTranslatingJapanese, setIsTranslatingJapanese] = useState(false)
   const [isEditingEnglish, setIsEditingEnglish] = useState(false)
   const [isEditingJapanese, setIsEditingJapanese] = useState(false)
-  const [isEditingPronunciation, setIsEditingPronunciation] = useState(false)
   const [hasTranslated, setHasTranslated] = useState(false)
-  const { toast } = useToast()
+  const [isSaving, setIsSaving] = useState(false)
+  const addSentence = useSentenceStore((state) => state.addSentence)
 
   const handleTranslate = async () => {
-    if (!koreanText.trim() || isLoading) return
+    if (!koreanText.trim() || isLoading || isTranslatingJapanese) return
 
     setIsLoading(true)
     setHasTranslated(false)
     setEnglishText("")
     setJapaneseText("")
-    setJapanesePronunciation("")
 
     try {
-      const result = await translateAllInOne(koreanText)
-      
-      setEnglishText(result.english)
-      setJapaneseText(result.japanese)
-      setJapanesePronunciation(result.pronunciation)
-      
+      const englishResult = await translate_ko_to_en(koreanText)
+      setEnglishText(englishResult)
       setHasTranslated(true)
-    } catch (error) {
-      toast({
-        title: "번역 실패",
-        description: error instanceof Error ? error.message : "알 수 없는 오류가 발생했습니다.",
-        variant: "destructive",
-      })
+
+      setIsTranslatingJapanese(true)
+      try {
+        const japaneseResult = await translate_en_to_ja(englishResult)
+        setJapaneseText(japaneseResult)
+      } catch (jaError) {
+        setJapaneseText("번역 오류")
+        console.error("Japanese translation failed:", jaError);
+        const errorMessage = jaError instanceof Error ? jaError.message : String(jaError)
+        toast.error("일본어 번역 실패", {
+          description: errorMessage,
+        })
+      } finally {
+        setIsTranslatingJapanese(false)
+      }
+    } catch (koEnError) {
       setHasTranslated(false)
+      const errorMessage = koEnError instanceof Error ? koEnError.message : "오류가 발생했습니다."
+      toast.error("영어 번역 실패", {
+        description: errorMessage,
+      })
     } finally {
       setIsLoading(false)
     }
   }
 
   const handleSave = () => {
-    if (!koreanText.trim() || !englishText.trim() || !japaneseText.trim()) {
-      toast({
-        title: "저장 실패",
-        description: "모든 번역이 완료된 후 저장할 수 있습니다.",
-        variant: "destructive",
+    if (!koreanText.trim() || !englishText.trim() || !japaneseText.trim() || japaneseText === '번역 오류' || isSaving) {
+      toast.error("저장 실패", {
+        description: "모든 번역이 오류 없이 완료된 후 저장할 수 있습니다.",
       })
       return
     }
 
-    // Mock save functionality - user will implement
-    toast({
-      title: "저장 완료!",
+    setIsSaving(true)
+
+    addSentence({
+      korean: koreanText,
+      english: englishText,
+      japanese: japaneseText,
+    })
+
+    toast.success("저장 완료!", {
       description: "문장이 '내 저장된 문장'에 추가되었습니다.",
     })
+
+    setTimeout(() => {
+      setKoreanText("")
+      setEnglishText("")
+      setJapaneseText("")
+      setHasTranslated(false)
+      setIsSaving(false)
+    }, 300)
   }
 
-  const handleEditToggle = (field: "english" | "japanese" | "pronunciation") => {
+  const handleEditToggle = (field: "english" | "japanese") => {
     switch (field) {
       case "english":
         setIsEditingEnglish(!isEditingEnglish)
         break
       case "japanese":
         setIsEditingJapanese(!isEditingJapanese)
-        break
-      case "pronunciation":
-        setIsEditingPronunciation(!isEditingPronunciation)
         break
     }
   }
@@ -93,7 +112,7 @@ export default function TranslatePage() {
           <div className="text-center space-y-4">
             <div className="flex items-center justify-center gap-2">
               <Languages className="h-8 w-8 text-blue-600" />
-              <h1 className="text-3xl font-bold text-gray-900">Conversify</h1>
+              <h1 className="text-3xl font-bold text-gray-900">회화 번역</h1>
             </div>
             <p className="text-gray-600 text-lg">일상 대화 문장을 입력하고 영어와 일본어로 번역해보세요</p>
           </div>
@@ -162,13 +181,20 @@ export default function TranslatePage() {
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <span className="flex items-center gap-2">🇯🇵 일본어 번역</span>
-                    <Button variant="ghost" size="sm" onClick={() => handleEditToggle("japanese")}>
-                      {isEditingJapanese ? <Check className="h-4 w-4" /> : <Edit3 className="h-4 w-4" />}
-                    </Button>
+                    {!isTranslatingJapanese && hasTranslated && (
+                      <Button variant="ghost" size="sm" onClick={() => handleEditToggle("japanese")}>
+                        {isEditingJapanese ? <Check className="h-4 w-4" /> : <Edit3 className="h-4 w-4" />}
+                      </Button>
+                    )}
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  {isEditingJapanese ? (
+                <CardContent className="space-y-4 min-h-[100px] flex items-center justify-center">
+                  {isTranslatingJapanese ? (
+                    <div className="flex items-center gap-2 text-gray-500">
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      <span>일본어로 번역 중...</span>
+                    </div>
+                  ) : isEditingJapanese ? (
                     <Textarea
                       value={japaneseText}
                       onChange={(e) => setJapaneseText(e.target.value)}
@@ -177,24 +203,6 @@ export default function TranslatePage() {
                   ) : (
                     <p className="text-lg leading-relaxed">{japaneseText}</p>
                   )}
-
-                  <div className="border-t pt-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <Label className="text-sm font-medium text-gray-600">한국어 발음</Label>
-                      <Button variant="ghost" size="sm" onClick={() => handleEditToggle("pronunciation")}>
-                        {isEditingPronunciation ? <Check className="h-4 w-4" /> : <Edit3 className="h-4 w-4" />}
-                      </Button>
-                    </div>
-                    {isEditingPronunciation ? (
-                      <Input
-                        value={japanesePronunciation}
-                        onChange={(e) => setJapanesePronunciation(e.target.value)}
-                        className="text-sm"
-                      />
-                    ) : (
-                      <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded-md">{japanesePronunciation}</p>
-                    )}
-                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -204,8 +212,18 @@ export default function TranslatePage() {
           {hasTranslated && (
             <Card className="shadow-lg">
               <CardContent className="pt-6">
-                <Button onClick={handleSave} className="w-full" size="lg" variant="default">
-                  <Save className="h-4 w-4 mr-2" />내 저장된 문장에 추가하기
+                <Button onClick={handleSave} className="w-full" size="lg" variant="default" disabled={isSaving}>
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      저장 중...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4 mr-2" />
+                      문장 저장하기
+                    </>
+                  )}
                 </Button>
               </CardContent>
             </Card>
